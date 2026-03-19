@@ -11,6 +11,7 @@ import (
 	"github.com/lore/goober/internal/logging"
 	"github.com/lore/goober/internal/websocket"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 func NewCommand() *cobra.Command {
@@ -50,17 +51,26 @@ func NewCommand() *cobra.Command {
 				json.NewEncoder(w).Encode(map[string]string{"message": message})
 			}
 
-			// Register /api/hosts endpoint
+			// Register /api/hosts endpoint (returns only hostnames for client consumption)
 			mux.HandleFunc("/api/hosts", func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodGet {
 					http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 					return
 				}
 
-				hosts := wsServer.GetHosts()
+				infos := wsServer.GetHosts()
+				names := make([]string, 0, len(infos))
+				for _, info := range infos {
+					// Strip any domain suffix (e.g., "host.example.com" → "host")
+					hostname := info.Hostname
+					if idx := strings.IndexByte(hostname, '.'); idx != -1 {
+						hostname = hostname[:idx]
+					}
+					names = append(names, hostname)
+				}
 
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(hosts)
+				json.NewEncoder(w).Encode(map[string][]string{"hosts": names})
 			})
 
 			// Register /api/wake endpoint

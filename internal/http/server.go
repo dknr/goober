@@ -12,17 +12,18 @@ import (
 )
 
 type Server struct {
-	config  *config.ControlDaemonConfig
-	logger  *logging.Logger
-	hosts   map[string]config.HostConfig
-	http    *http.Server
+	config    *config.ControlDaemonConfig
+	logger    *logging.Logger
+	hosts     map[string]config.HostConfig
+	connected map[string]bool // tracks hosts that have sent a heartbeat
+	http      *http.Server
 }
-
 func NewServer(cfg *config.ControlDaemonConfig, logger *logging.Logger) *Server {
 	return &Server{
-		config: cfg,
-		logger: logger,
-		hosts:  cfg.Hosts,
+		config:    cfg,
+		logger:    logger,
+		hosts:     cfg.Hosts,
+		connected: make(map[string]bool),
 	}
 }
 
@@ -32,6 +33,7 @@ func (s *Server) Start() error {
 
 	// Register endpoints
 	mux.HandleFunc("/api/wake", s.handleWake)
+	mux.HandleFunc("/api/hosts", s.handleHosts)
 
 	// TODO: Mount WebSocket server here for host heartbeats
 	// wsServer := websocket.NewServer()
@@ -103,4 +105,22 @@ func (s *Server) respond(w http.ResponseWriter, message string, statusCode int) 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]string{"message": message})
+}
+
+// handleHosts returns the list of currently connected hosts.
+func (s *Server) handleHosts(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		s.respond(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Build slice of connected host names
+	names := make([]string, 0, len(s.connected))
+	for name := range s.connected {
+		names = append(names, name)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string][]string{"hosts": names})
 }

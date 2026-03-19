@@ -74,8 +74,12 @@ func NewCommand() *cobra.Command {
 							break
 						}
 
-					case msg := <-readMessages(wsClient):
-						logger.Infof("Received: %s", msg.Type)
+			case msg := <-readMessages(wsClient):
+				if msg == nil {
+					// Channel closed – break out to reconnect
+					break
+				}
+				logger.Infof("Received: %s", msg.Type)
 
 					case err := <-checkErrors(wsClient):
 						logger.Errorf("Connection error: %v", err)

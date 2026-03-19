@@ -65,13 +65,16 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Host connected: %s", hostname)
 
+	// Track the actual hostname seen on the connection (may differ from query param)
+	activeHostname := hostname
+
 	// Read messages from client
 	for {
 		messageType, message, err := conn.ReadMessage()
 		if err != nil {
-			log.Printf("Connection error for %s: %v", hostname, err)
+			log.Printf("Connection error for %s: %v", activeHostname, err)
 			s.mu.Lock()
-			delete(s.hosts, hostname)
+			delete(s.hosts, activeHostname)
 			s.mu.Unlock()
 			break
 		}
@@ -79,16 +82,29 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		if messageType == websocket.TextMessage {
 			var msg Message
 			if err := json.Unmarshal(message, &msg); err != nil {
-				log.Printf("Failed to unmarshal message from %s: %v", hostname, err)
+				log.Printf("Failed to unmarshal message from %s: %v", activeHostname, err)
 				continue
 			}
 
-			// Update last seen timestamp
+			// Update active hostname based on the first valid message
+			if activeHostname == "unknown" || activeHostname != msg.Hostname {
+				activeHostname = msg.Hostname
+			}
+
+			// Update last seen timestamp (or create entry)
 			s.mu.Lock()
 			if host, ok := s.hosts[msg.Hostname]; ok {
 				host.LastSeen = time.Now()
 				s.hosts[msg.Hostname] = host
+			} else {
+				// First heartbeat from this host – create entry
+				s.hosts[msg.Hostname] = HostInfo{
+					Hostname:    msg.Hostname,
+					LastSeen:    time.Now(),
+					ConnectedAt: time.Now(),
+				}
 			}
+
 			s.mu.Unlock()
 
 			log.Printf("Received %s from %s", msg.Type, msg.Hostname)
@@ -98,7 +114,7 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Printf("Host disconnected: %s", hostname)
+	log.Printf("Host disconnected: %s", activeHostname)
 }
 
 func (s *Server) handleMessage(conn *websocket.Conn, msg *Message) {

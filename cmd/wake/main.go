@@ -2,6 +2,7 @@ package wake
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/lore/goober/internal/config"
 	"github.com/lore/goober/internal/http"
@@ -38,7 +39,34 @@ func NewCommand(cfg *ClientConfig) *cobra.Command {
 				return fmt.Errorf("wake failed: %w", err)
 			}
 
-			fmt.Println(result)
+			// Inform user and start waiting for the host to appear online
+			fmt.Printf("%s\n", result)
+			fmt.Printf("Waiting up to 30 seconds for host '%s' to come online...\n", hostname)
+
+			deadline := time.Now().Add(30 * time.Second)
+			for time.Now().Before(deadline) {
+				hosts, err := client.GetHosts()
+				if err != nil {
+					// non‑fatal, just retry after a short pause
+					time.Sleep(2 * time.Second)
+					continue
+				}
+				found := false
+				for _, h := range hosts {
+					if h == hostname {
+						found = true
+						break
+					}
+				}
+				if found {
+					fmt.Printf("✅ Host %s is now online.\n", hostname)
+					return nil
+				}
+				// not yet, wait a bit
+				time.Sleep(2 * time.Second)
+			}
+
+			fmt.Printf("⚠️ Host %s did not appear online after 30 seconds.\n", hostname)
 			return nil
 		},
 	}

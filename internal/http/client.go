@@ -79,3 +79,31 @@ func (c *Client) SendCommand(command string, param string) (string, error) {
 
 	return "", fmt.Errorf("command not implemented: %s", command)
 }
+
+// GetHosts contacts the control daemon and returns the slice of host names that are currently online.
+func (c *Client) GetHosts() ([]string, error) {
+	url := c.buildURL("/api/hosts")
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get hosts: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("get hosts failed (status %d): %s", resp.StatusCode, string(body))
+	}
+
+	var payload struct {
+		Hosts []string `json:"hosts"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, fmt.Errorf("failed to decode hosts: %w", err)
+	}
+
+	return payload.Hosts, nil
+}
