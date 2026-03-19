@@ -3,6 +3,7 @@ package hostdaemon
 import (
 	"fmt"
 	"time"
+	"strings"
 
 	"github.com/lore/goober/internal/config"
 	"github.com/lore/goober/internal/logging"
@@ -62,7 +63,11 @@ func NewCommand() *cobra.Command {
 				for {
 					select {
 					case <-ticker.C:
-						if err := wsClient.SendHeartbeat(cfg.Hostname); err != nil {
+						shortName := cfg.Hostname
+if idx := strings.IndexByte(cfg.Hostname, '.'); idx != -1 {
+    shortName = cfg.Hostname[:idx]
+}
+if err := wsClient.SendHeartbeat(shortName); err != nil {
 							logger.Errorf("Failed to send heartbeat: %v", err)
 						}
 

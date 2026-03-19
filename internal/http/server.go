@@ -6,6 +6,7 @@ import (
 	"io"
 	"os/exec"
 	"net/http"
+	"sync"
 
 	"github.com/lore/goober/internal/config"
 	"github.com/lore/goober/internal/logging"
@@ -16,6 +17,7 @@ type Server struct {
 	logger    *logging.Logger
 	hosts     map[string]config.HostConfig
 	connected map[string]bool // tracks hosts that have sent a heartbeat
+	mu        sync.RWMutex
 	http      *http.Server
 }
 func NewServer(cfg *config.ControlDaemonConfig, logger *logging.Logger) *Server {
@@ -96,6 +98,11 @@ func (s *Server) handleWake(w http.ResponseWriter, r *http.Request) {
 	}
 
 	s.logger.Infof("Sent WoL packet to host: %s (MAC: %s)", req.Host, host.MAC)
+
+	// Remove any stale entry for this host – we want the client to wait for a fresh heartbeat.
+	s.mu.Lock()
+	delete(s.connected, req.Host)
+	s.mu.Unlock()
 
 	// Return success
 	s.respond(w, fmt.Sprintf("Sent wake-on-lan packet to %s (%s)", req.Host, host.MAC), http.StatusOK)

@@ -93,13 +93,15 @@ func (c *Client) ReceiveMessage() (*Message, error) {
 
 // IsConnected checks if WebSocket connection is active
 func (c *Client) IsConnected() bool {
-	return c.conn != nil && c.conn != nil
+	return c.conn != nil
 }
 
-// Close closes the WebSocket connection
+// Close closes the WebSocket connection and clears the pointer
 func (c *Client) Close() error {
 	if c.conn != nil {
-		return c.conn.Close()
+		err := c.conn.Close()
+		c.conn = nil
+		return err
 	}
 	return nil
 }

@@ -152,6 +152,25 @@ func (s *Server) GetHosts() []HostInfo {
 	return hosts
 }
 
+// GetConnectedHosts returns a slice of hostnames that have sent a heartbeat (i.e., are online).
+func (s *Server) GetConnectedHosts() []string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	names := make([]string, 0, len(s.hosts))
+	for name := range s.hosts {
+		names = append(names, name)
+	}
+	return names
+}
+
+// RemoveHost deletes a host entry (used to clear stale data after a wake request).
+func (s *Server) RemoveHost(name string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.hosts, name)
+}
+
 func (s *Server) GetHost(hostname string) (*HostInfo, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

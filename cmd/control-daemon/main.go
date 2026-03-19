@@ -11,7 +11,6 @@ import (
 	"github.com/lore/goober/internal/logging"
 	"github.com/lore/goober/internal/websocket"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 func NewCommand() *cobra.Command {
@@ -58,16 +57,8 @@ func NewCommand() *cobra.Command {
 					return
 				}
 
-				infos := wsServer.GetHosts()
-				names := make([]string, 0, len(infos))
-				for _, info := range infos {
-					// Strip any domain suffix (e.g., "host.example.com" → "host")
-					hostname := info.Hostname
-					if idx := strings.IndexByte(hostname, '.'); idx != -1 {
-						hostname = hostname[:idx]
-					}
-					names = append(names, hostname)
-				}
+			names := wsServer.GetConnectedHosts()
+
 
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string][]string{"hosts": names})
@@ -120,6 +111,8 @@ func NewCommand() *cobra.Command {
 				}
 
 				logger.Infof("Sent WoL packet to host: %s (MAC: %s)", req.Host, host.MAC)
+			// Clear any stale online entry so client must wait for fresh heartbeat.
+			wsServer.RemoveHost(req.Host)
 				sendResponse(w, fmt.Sprintf("Sent wake-on-lan packet to %s (%s)", req.Host, host.MAC), http.StatusOK)
 			})
 
