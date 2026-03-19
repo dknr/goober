@@ -1,0 +1,46 @@
+# Binaries
+gbr
+dist/
+gbr-controld
+gbr-hostd
+gbr-noded
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# Config files with sensitive data
+*.key
+*.pub
+*.toml
+!example*.toml
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test
+coverage.txt
+coverage.html
