@@ -48,8 +48,8 @@ func NewCommand(cfg *ClientConfig) *cobra.Command {
 			}
 			hostnameLen += 2 // Pad
 
-			fmt.Printf("%-*s %-8s %s\n", hostnameLen, "NAME", "STATUS", "LAST SEEN")
-			fmt.Printf("%s\n", strings.Repeat("-", hostnameLen+8+10))
+			fmt.Printf("%-*s %-9s %s\n", hostnameLen, "NAME", "STATUS", "LAST SEEN")
+			fmt.Printf("%s\n", strings.Repeat("-", hostnameLen+9+10))
 
 			for hostname, status := range rawHosts {
 				if len(status) == 0 {
@@ -64,7 +64,16 @@ func NewCommand(cfg *ClientConfig) *cobra.Command {
 					if hostStatus.LastSeen.IsZero() {
 						fmt.Printf("%-*s %-8s %s\n", hostnameLen, hostname, "offline", "never")
 					} else {
-						fmt.Printf("%-*s %-8s %s\n", hostnameLen, hostname, "online", hostStatus.LastSeen.Format("2006-01-02 15:04:05"))
+						ago := time.Since(hostStatus.LastSeen)
+						var status string
+						if ago < 2*time.Minute {
+							status = "online"
+						} else if ago < 5*time.Minute {
+							status = "unknown"
+						} else {
+							status = "offline"
+						}
+						fmt.Printf("%-*s %-9s %s\n", hostnameLen, hostname, status, hostStatus.LastSeen.Format("2006-01-02 15:04:05"))
 					}
 				}
 			}
