@@ -39,6 +39,10 @@ func (l *Logger) Debug(msg string) {
 	l.logger.Printf("[DEBUG] %s", msg)
 }
 
+func (l *Logger) Debugf(msg string, args ...interface{}) {
+	l.logger.Printf("[DEBUG] "+msg, args...)
+}
+
 func (l *Logger) Warn(msg string) {
 	l.logger.Printf("[WARN] %s", msg)
 }

@@ -11,8 +11,9 @@ import (
 
 type Client struct {
 	// Server connection
-	conn     *websocket.Conn
+	conn      *websocket.Conn
 	serverURL string
+	closed    bool // Track if connection is closed
 }
 
 type Message struct {
@@ -73,6 +74,9 @@ func (c *Client) SendHeartbeat(hostname string) error {
 
 // ReceiveMessage reads a message from control daemon
 func (c *Client) ReceiveMessage() (*Message, error) {
+	if c.closed {
+		return nil, fmt.Errorf("connection closed")
+	}
 	if c.conn == nil {
 		return nil, fmt.Errorf("not connected")
 	}
@@ -93,7 +97,12 @@ func (c *Client) ReceiveMessage() (*Message, error) {
 
 // IsConnected checks if WebSocket connection is active
 func (c *Client) IsConnected() bool {
-	return c.conn != nil
+	return c.conn != nil && !c.closed
+}
+
+// IsClosed returns true if the connection has been closed
+func (c *Client) IsClosed() bool {
+	return c.closed
 }
 
 // Close closes the WebSocket connection and clears the pointer
@@ -101,6 +110,7 @@ func (c *Client) Close() error {
 	if c.conn != nil {
 		err := c.conn.Close()
 		c.conn = nil
+		c.closed = true // Mark as closed
 		return err
 	}
 	return nil
@@ -108,16 +118,21 @@ func (c *Client) Close() error {
 
 // Reconnect attempts to reconnect with exponential backoff
 func (c *Client) Reconnect(maxDelay time.Duration) error {
+	// Close existing connection if any
 	if c.conn != nil {
 		c.conn.Close()
 		c.conn = nil
 	}
+
+	// Reset closed state for new connection attempt
+	c.closed = false
 
 	delay := 5 * time.Second
 	for delay < maxDelay {
 		log.Printf("Reconnecting in %v...", delay)
 
 		if err := c.Connect(); err == nil {
+			c.closed = false // Ensure closed flag is false after success
 			return nil
 		}
 

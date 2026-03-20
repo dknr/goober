@@ -39,8 +39,8 @@ func NewCommand() *cobra.Command {
 			// Create WebSocket client
 			wsClient := websocket.NewClient(fmt.Sprintf("ws://%s%s", cfg.Control.Address, cfg.Control.Path))
 
-			// Main loop
-			for {
+// Main loop
+	for {
 				// Connect to control daemon
 				if err := wsClient.Connect(); err != nil {
 					logger.Errorf("Connection failed: %v", err)
@@ -60,36 +60,32 @@ func NewCommand() *cobra.Command {
 				ticker := time.NewTicker(heartbeatInterval)
 				defer ticker.Stop()
 
+			ConnectionLoop:
 				for {
 					select {
 					case <-ticker.C:
 						shortName := cfg.Hostname
-if idx := strings.IndexByte(cfg.Hostname, '.'); idx != -1 {
-    shortName = cfg.Hostname[:idx]
-}
-if err := wsClient.SendHeartbeat(shortName); err != nil {
+						if idx := strings.IndexByte(cfg.Hostname, '.'); idx != -1 {
+							shortName = cfg.Hostname[:idx]
+						}
+						if err := wsClient.SendHeartbeat(shortName); err != nil {
 							logger.Errorf("Failed to send heartbeat: %v", err)
+							break ConnectionLoop
 						}
 
 					case <-time.After(30 * time.Second):
 						// Check connection every 30 seconds
-						if !wsClient.IsConnected() {
-							logger.Info("Connection lost")
-							wsClient.Close()
-							break
+						if wsClient.IsClosed() {
+							logger.Info("Connection closed, reconnecting...")
+							break ConnectionLoop
 						}
 
-			case msg := <-readMessages(wsClient):
-				if msg == nil {
-					// Channel closed – break out to reconnect
-					break
-				}
-				logger.Infof("Received: %s", msg.Type)
-
-					case err := <-checkErrors(wsClient):
-						logger.Errorf("Connection error: %v", err)
-						wsClient.Close()
-						break
+					case msg := <-readMessages(wsClient, logger):
+						if msg == nil {
+							logger.Info("Connection lost, reconnecting...")
+							break ConnectionLoop
+						}
+						logger.Debugf("Received: %s", msg.Type)
 					}
 				}
 
@@ -109,14 +105,17 @@ if err := wsClient.SendHeartbeat(shortName); err != nil {
 }
 
 // readMessages returns a channel for reading messages from WebSocket
-func readMessages(ws *websocket.Client) <-chan *websocket.Message {
-	msgChan := make(chan *websocket.Message)
+// Returns nil message when connection is lost or error occurs
+func readMessages(ws *websocket.Client, logger *logging.Logger) <-chan *websocket.Message {
+	msgChan := make(chan *websocket.Message, 1)
 
 	go func() {
 		defer close(msgChan)
 		for {
 			msg, err := ws.ReceiveMessage()
 			if err != nil {
+				// Log the error for debugging
+				logger.Errorf("WebSocket read error: %v", err)
 				return
 			}
 			msgChan <- msg
@@ -124,20 +123,4 @@ func readMessages(ws *websocket.Client) <-chan *websocket.Message {
 	}()
 
 	return msgChan
-}
-
-// checkErrors returns a channel for connection errors
-func checkErrors(ws *websocket.Client) <-chan error {
-	errChan := make(chan error)
-
-	go func() {
-		defer close(errChan)
-		for {
-			// In a real implementation, we'd check the connection status
-			// For now, we'll just wait indefinitely
-			time.Sleep(1 * time.Minute)
-		}
-	}()
-
-	return errChan
 }
