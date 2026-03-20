@@ -80,8 +80,9 @@ func (c *Client) SendCommand(command string, param string) (string, error) {
 	return "", fmt.Errorf("command not implemented: %s", command)
 }
 
-// GetHosts contacts the control daemon and returns the slice of host names that are currently online.
-func (c *Client) GetHosts() ([]string, error) {
+// GetHosts contacts the control daemon and returns a map of hostname to JSON raw message.
+// Online hosts have last_seen, offline hosts have null.
+func (c *Client) GetHosts() (map[string]json.RawMessage, error) {
 	url := c.buildURL("/api/hosts")
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
@@ -98,12 +99,10 @@ func (c *Client) GetHosts() ([]string, error) {
 		return nil, fmt.Errorf("get hosts failed (status %d): %s", resp.StatusCode, string(body))
 	}
 
-	var payload struct {
-		Hosts []string `json:"hosts"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+	var hosts map[string]json.RawMessage
+	if err := json.NewDecoder(resp.Body).Decode(&hosts); err != nil {
 		return nil, fmt.Errorf("failed to decode hosts: %w", err)
 	}
 
-	return payload.Hosts, nil
+	return hosts, nil
 }

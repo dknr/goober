@@ -1,7 +1,10 @@
 package status
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 
 	"github.com/lore/goober/internal/config"
 	"github.com/lore/goober/internal/http"
@@ -14,7 +17,7 @@ type ClientConfig = config.ClientConfig
 func NewCommand(cfg *ClientConfig) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
-		Short: "Show status of VMs and hosts",
+		Short: "Show status of managed hosts",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if cfg == nil {
 				return fmt.Errorf("configuration not loaded")
@@ -27,13 +30,45 @@ func NewCommand(cfg *ClientConfig) *cobra.Command {
 			}
 			defer client.Close()
 
-			// Send status command
-			result, err := client.SendCommand("status", "")
+			// Get hosts
+			rawHosts, err := client.GetHosts()
 			if err != nil {
-				return fmt.Errorf("status failed: %w", err)
+				return fmt.Errorf("failed to get hosts: %w", err)
 			}
 
-			fmt.Println(result)
+			// Build status table
+			type HostStatus struct {
+				LastSeen time.Time `json:"last_seen"`
+			}
+			hostnameLen := 0
+			for hostname := range rawHosts {
+				if len(hostname) > hostnameLen {
+					hostnameLen = len(hostname)
+				}
+			}
+			hostnameLen += 2 // Pad
+
+			fmt.Printf("%-*s %-8s %s\n", hostnameLen, "NAME", "STATUS", "LAST SEEN")
+			fmt.Printf("%s\n", strings.Repeat("-", hostnameLen+8+10))
+
+			for hostname, status := range rawHosts {
+				if len(status) == 0 {
+					fmt.Printf("%-*s %-8s %s\n", hostnameLen, hostname, "offline", "never")
+				} else {
+					// Unmarshal status into HostStatus struct
+					var hostStatus HostStatus
+					if err := json.Unmarshal(status, &hostStatus); err != nil {
+						fmt.Printf("%-*s %-8s %s\n", hostnameLen, hostname, "error", err.Error())
+						continue
+					}
+					if hostStatus.LastSeen.IsZero() {
+						fmt.Printf("%-*s %-8s %s\n", hostnameLen, hostname, "offline", "never")
+					} else {
+						fmt.Printf("%-*s %-8s %s\n", hostnameLen, hostname, "online", hostStatus.LastSeen.Format("2006-01-02 15:04:05"))
+					}
+				}
+			}
+
 			return nil
 		},
 	}

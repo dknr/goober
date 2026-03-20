@@ -43,6 +43,13 @@ func NewCommand() *cobra.Command {
 			wsServer := websocket.NewServer()
 			mux.Handle("/ws", wsServer)
 
+			// Set configured hostnames
+			var configuredHosts []string
+			for hostname := range cfg.Hosts {
+				configuredHosts = append(configuredHosts, hostname)
+			}
+			wsServer.SetConfiguredHosts(configuredHosts)
+
 			// Helper function to send JSON response
 			sendResponse := func(w http.ResponseWriter, message string, statusCode int) {
 				w.Header().Set("Content-Type", "application/json")
@@ -50,18 +57,16 @@ func NewCommand() *cobra.Command {
 				json.NewEncoder(w).Encode(map[string]string{"message": message})
 			}
 
-			// Register /api/hosts endpoint (returns only hostnames for client consumption)
+			// Register /api/hosts endpoint (returns all configured hosts with last_seen for online ones)
 			mux.HandleFunc("/api/hosts", func(w http.ResponseWriter, r *http.Request) {
 				if r.Method != http.MethodGet {
 					http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 					return
 				}
 
-			names := wsServer.GetConnectedHosts()
-
-
+				hosts := wsServer.GetAllHosts()
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string][]string{"hosts": names})
+				json.NewEncoder(w).Encode(hosts)
 			})
 
 			// Register /api/wake endpoint

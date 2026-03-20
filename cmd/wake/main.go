@@ -52,7 +52,7 @@ func NewCommand(cfg *ClientConfig) *cobra.Command {
 					continue
 				}
 				found := false
-				for _, h := range hosts {
+				for h := range hosts {
 					if h == hostname {
 						found = true
 						break

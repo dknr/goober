@@ -11,15 +11,14 @@ import (
 )
 
 type Server struct {
-	upgrader websocket.Upgrader
-	hosts    map[string]HostInfo
-	mu       sync.RWMutex
+	upgrader      websocket.Upgrader
+	hosts         map[string]HostInfo
+	configured    map[string]bool
+	mu            sync.RWMutex
 }
 
 type HostInfo struct {
-	Hostname    string    `json:"hostname"`
-	LastSeen    time.Time `json:"last_seen"`
-	ConnectedAt time.Time `json:"connected_at"`
+	LastSeen time.Time `json:"last_seen"`
 }
 
 func NewServer() *Server {
@@ -32,8 +31,35 @@ func NewServer() *Server {
 				return true
 			},
 		},
-		hosts: make(map[string]HostInfo),
+		hosts:    make(map[string]HostInfo),
+		configured: make(map[string]bool),
 	}
+}
+
+// SetConfiguredHosts sets the list of configured hostnames
+func (s *Server) SetConfiguredHosts(hosts []string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.configured = make(map[string]bool)
+	for _, h := range hosts {
+		s.configured[h] = true
+	}
+}
+
+// GetAllHosts returns a map of all configured hostnames to HostInfo (or null for offline)
+func (s *Server) GetAllHosts() map[string]interface{} {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make(map[string]interface{})
+	for hostname := range s.configured {
+		if info, ok := s.hosts[hostname]; ok {
+			result[hostname] = info
+		} else {
+			result[hostname] = nil
+		}
+	}
+	return result
 }
 
 func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
@@ -57,9 +83,7 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	s.mu.Lock()
 	s.hosts[hostname] = HostInfo{
-		Hostname:    hostname,
-		LastSeen:    time.Now(),
-		ConnectedAt: time.Now(),
+		LastSeen: time.Now(),
 	}
 	s.mu.Unlock()
 
@@ -99,9 +123,7 @@ func (s *Server) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 			} else {
 				// First heartbeat from this host – create entry
 				s.hosts[msg.Hostname] = HostInfo{
-					Hostname:    msg.Hostname,
-					LastSeen:    time.Now(),
-					ConnectedAt: time.Now(),
+					LastSeen: time.Now(),
 				}
 			}
 
@@ -162,6 +184,18 @@ func (s *Server) GetConnectedHosts() []string {
 		names = append(names, name)
 	}
 	return names
+}
+
+// GetHostsMap returns a map of hostname to HostInfo for all connected hosts.
+func (s *Server) GetHostsMap() map[string]HostInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	hosts := make(map[string]HostInfo, len(s.hosts))
+	for hostname, info := range s.hosts {
+		hosts[hostname] = info
+	}
+	return hosts
 }
 
 // RemoveHost deletes a host entry (used to clear stale data after a wake request).
