@@ -1,6 +1,7 @@
 package wake
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -51,18 +52,31 @@ func NewCommand(cfg *ClientConfig) *cobra.Command {
 					time.Sleep(2 * time.Second)
 					continue
 				}
-				found := false
-				for h := range hosts {
-					if h == hostname {
-						found = true
-						break
-					}
+
+				// Check if host is in response and has a valid last_seen timestamp
+				rawStatus, ok := hosts[hostname]
+				if !ok {
+					// Host not in response yet
+					time.Sleep(2 * time.Second)
+					continue
 				}
-				if found {
+
+				var hostStatus struct {
+					LastSeen time.Time `json:"last_seen"`
+				}
+				if err := json.Unmarshal(rawStatus, &hostStatus); err != nil {
+					// Failed to parse, wait and retry
+					time.Sleep(2 * time.Second)
+					continue
+				}
+
+				// Check if LastSeen is not zero (host has actually connected)
+				if !hostStatus.LastSeen.IsZero() {
 					fmt.Printf("✅ Host %s is now online.\n", hostname)
 					return nil
 				}
-				// not yet, wait a bit
+
+				// Host exists but hasn't connected yet, wait and retry
 				time.Sleep(2 * time.Second)
 			}
 
