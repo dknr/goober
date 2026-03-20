@@ -32,7 +32,7 @@ make deps     # Download dependencies
 
 ## Current Status
 
-**Phase 1-3 Complete**: Basic HTTP control daemon and WoL functionality (uses `wakeonlan` binary), WebSocket host daemon for heartbeats
+**Phase 1-4 Complete**: WebSocket-based orchestration with status tracking and thresholds, wake validation
 
 ## Dependencies
 
@@ -48,7 +48,7 @@ make deps     # Download dependencies
 ./gbr control-daemon --config ~/.config/goober/goober-control.toml
 ```
 
-The daemon listens on `127.0.0.1:29530` for HTTP requests. Requires `wakeonlan` to be installed.
+The daemon listens on `127.0.0.1:29530` for HTTP requests.
 
 ### Wake a Host
 
@@ -56,7 +56,26 @@ The daemon listens on `127.0.0.1:29530` for HTTP requests. Requires `wakeonlan` 
 ./gbr wake chungus
 ```
 
-This sends a Wake-on-LAN packet to the configured MAC address for the specified host. Requires `wakeonlan` to be installed.
+This sends a Wake-on-LAN packet to the configured MAC address for the specified host, then waits up to 30 seconds for the host to connect via WebSocket before declaring it online.
+
+### Check Host Status
+
+```bash
+./gbr status
+```
+
+Shows current status of all configured hosts:
+- **online**: last heartbeat received within 2 minutes
+- **unknown**: last heartbeat between 2-5 minutes ago
+- **offline**: last heartbeat older than 5 minutes (or never connected)
+
+Output example:
+```
+NAME    STATUS    LAST SEEN
+---------------------------
+chungus offline   2026-03-19 21:28:00
+office-server online  2026-03-19 22:15:30
+```
 
 ### Start Host Daemon
 
@@ -93,6 +112,55 @@ path = "/ws"
 
 [heartbeat]
 interval = 60
+
+### Client Config (`~/.config/goober/goober-client.toml`)
+
+```toml
+[server]
+address = "127.0.0.1:29530"
+```
+
+## Architecture
+
+Goober consists of three main components:
+
+1. **Control Daemon** (`gbr control-daemon`)
+   - Runs on desktop/server
+   - Listens on configured address for HTTP requests
+   - Manages configured hosts and their MAC addresses
+   - Receives heartbeats from host daemons via WebSocket
+   - Tracks last_seen timestamps for each host
+   - Provides `/api/hosts` endpoint with status information
+
+2. **Host Daemon** (`gbr host-daemon`)
+   - Runs on FreeBSD hosts
+   - Connects to control daemon via WebSocket
+   - Sends periodic heartbeats with hostname
+   - Handles reconnection on connection loss
+   - Supports future: suspend detection, VM control
+
+3. **Client** (`gbr` commands)
+   - `wake <hostname>` - Send WoL, wait for connection
+   - `status` - Check host status with thresholds
+   - `control-daemon` - Start control daemon
+   - `host-daemon` - Start host daemon
+   - `genkey` - Generate ed25519 keypairs (future)
+   - `stop <hostname>` - Power off/suspend host (future)
+
+### Status Thresholds
+
+Host status is determined by last_seen timestamp:
+- **2 minutes**: online
+- **2-5 minutes**: unknown
+- **5+ minutes**: offline
+
+### Future Features
+
+- **Suspend Detection**: Host daemon sends message before S3 suspend
+- **Authentication**: ed25519 keypairs for host identification
+- **Power Control**: `gbr stop` command for power-off/suspend
+- **VM Lifecycle**: Start/stop VMs via `vm:bhyve` commands
+- **Web UI**: HTTP API with real-time WebSocket updates
 ```
 
 ### Client Config (`~/.config/goober/goober-client.toml`)
