@@ -8,9 +8,9 @@ import (
 	"os/exec"
 	"sync"
 
-	"github.com/lore/goober/internal/config"
-	"github.com/lore/goober/internal/logging"
-	"github.com/lore/goober/internal/websocket"
+	"github.com/dknr/goober/internal/config"
+	"github.com/dknr/goober/internal/logging"
+	"github.com/dknr/goober/internal/websocket"
 )
 
 type Server struct {

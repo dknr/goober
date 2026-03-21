@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"os"
 
-	controldaemon "github.com/lore/goober/cmd/control-daemon"
-	genkey "github.com/lore/goober/cmd/genkey"
-	stop "github.com/lore/goober/cmd/stop"
-	"github.com/lore/goober/cmd/status"
-	"github.com/lore/goober/cmd/wake"
-	"github.com/lore/goober/internal/config"
-	hostdaemon "github.com/lore/goober/cmd/host-daemon"
+	controldaemon "github.com/dknr/goober/cmd/control-daemon"
+	genkey "github.com/dknr/goober/cmd/genkey"
+	stop "github.com/dknr/goober/cmd/stop"
+	"github.com/dknr/goober/cmd/status"
+	"github.com/dknr/goober/cmd/wake"
+	"github.com/dknr/goober/internal/config"
+	hostdaemon "github.com/dknr/goober/cmd/host-daemon"
 	"github.com/spf13/cobra"
-	versionCmd "github.com/lore/goober/cmd/version"
+	versionCmd "github.com/dknr/goober/cmd/version"
 )
 
 var (

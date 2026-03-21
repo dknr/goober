@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/lore/goober/internal/crypto"
+	"github.com/dknr/goober/internal/crypto"
 	"github.com/spf13/cobra"
 )
 

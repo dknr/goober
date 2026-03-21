@@ -3,8 +3,8 @@ package controldaemon
 import (
 	"fmt"
 
-	"github.com/lore/goober/internal/config"
-	"github.com/lore/goober/internal/logging"
+	"github.com/dknr/goober/internal/config"
+	"github.com/dknr/goober/internal/logging"
 	"github.com/spf13/cobra"
 )
 

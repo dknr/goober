@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/lore/goober/internal/config"
-	"github.com/lore/goober/internal/http"
+	"github.com/dknr/goober/internal/config"
+	"github.com/dknr/goober/internal/http"
 	"github.com/spf13/cobra"
 )
 

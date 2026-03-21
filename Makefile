@@ -20,25 +20,25 @@ build: build-linux-amd64 build-linux-arm64 build-freebsd-amd64 build-freebsd-arm
 build-linux-amd64:
 	@echo "Building for linux/amd64..."
 	@mkdir -p dist/linux-amd64
-	GOOS=linux GOARCH=amd64 $(GOBUILD) -ldflags "-X github.com/lore/goober/cmd/version.buildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/linux-amd64/$(BINARY_NAME) .
+	GOOS=linux GOARCH=amd64 $(GOBUILD) -ldflags "-X github.com/dknr/goober/cmd/version.buildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/linux-amd64/$(BINARY_NAME) .
 
 # Build for Linux arm64
 build-linux-arm64:
 	@echo "Building for linux/arm64..."
 	@mkdir -p dist/linux-arm64
-	GOOS=linux GOARCH=arm64 $(GOBUILD) -ldflags "-X github.com/lore/goober/cmd/version.buildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/linux-arm64/$(BINARY_NAME) .
+	GOOS=linux GOARCH=arm64 $(GOBUILD) -ldflags "-X github.com/dknr/goober/cmd/version.buildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/linux-arm64/$(BINARY_NAME) .
 
 # Build for FreeBSD amd64
 build-freebsd-amd64:
 	@echo "Building for freebsd/amd64..."
 	@mkdir -p dist/freebsd-amd64
-	GOOS=freebsd GOARCH=amd64 $(GOBUILD) -ldflags "-X github.com/lore/goober/cmd/version.buildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/freebsd-amd64/$(BINARY_NAME) .
+	GOOS=freebsd GOARCH=amd64 $(GOBUILD) -ldflags "-X github.com/dknr/goober/cmd/version.buildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/freebsd-amd64/$(BINARY_NAME) .
 
 # Build for FreeBSD arm64
 build-freebsd-arm64:
 	@echo "Building for freebsd/arm64..."
 	@mkdir -p dist/freebsd-arm64
-	GOOS=freebsd GOARCH=arm64 $(GOBUILD) -ldflags "-X github.com/lore/goober/cmd/version.buildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/freebsd-arm64/$(BINARY_NAME) .
+	GOOS=freebsd GOARCH=arm64 $(GOBUILD) -ldflags "-X github.com/dknr/goober/cmd/version.buildTime=$(shell date -u +%Y-%m-%dT%H:%M:%SZ)" -o dist/freebsd-arm64/$(BINARY_NAME) .
 
 # Clean build artifacts
 clean:

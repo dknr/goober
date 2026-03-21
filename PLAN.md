@@ -85,7 +85,7 @@ address = "127.0.0.1:29530"
 ## Implementation Phases
 
 ### Phase 1: Foundation
-- [ ] Initialize Go module (`go mod init github.com/lore/goober`)
+- [ ] Initialize Go module (`go mod init github.com/dknr/goober`)
 - [ ] Set up directory structure
 - [ ] Create ed25519 key generation command (`gbr genkey`)
 - [ ] Create sample TOML config files
