@@ -26,7 +26,7 @@ type HostConfig struct {
 
 type HostDaemonConfig struct {
 	Server    ServerConfig    `toml:"server"`
-	Hostname  string          `toml:"hostname"`
+	Name      string          `toml:"name"`
 	Control   ControlConfig   `toml:"control"`
 	Heartbeat HeartbeatConfig `toml:"heartbeat"`
 }
@@ -82,12 +82,12 @@ func LoadHostDaemonConfig(path string) (*HostDaemonConfig, error) {
 		cfg.Server.Listen = "127.0.0.1:29532"
 	}
 
-	if cfg.Hostname == "" {
+	if cfg.Name == "" {
 		hostname, err := os.Hostname()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get hostname: %w", err)
 		}
-		cfg.Hostname = hostname
+		cfg.Name = hostname
 	}
 
 	if cfg.Control.Address == "" {

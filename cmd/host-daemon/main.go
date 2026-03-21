@@ -32,7 +32,7 @@ func NewCommand() *cobra.Command {
 			logger := logging.NewLogger("info")
 
 			logger.Info("Starting gbr host-daemon...")
-			logger.Infof("Hostname: %s", cfg.Hostname)
+			logger.Infof("Hostname: %s", cfg.Name)
 			logger.Infof("Heartbeat interval: %d seconds", cfg.Heartbeat.Interval)
 			logger.Infof("Connecting to control daemon at ws://%s%s", cfg.Control.Address, cfg.Control.Path)
 
@@ -64,9 +64,9 @@ func NewCommand() *cobra.Command {
 				for {
 					select {
 					case <-ticker.C:
-						shortName := cfg.Hostname
-						if idx := strings.IndexByte(cfg.Hostname, '.'); idx != -1 {
-							shortName = cfg.Hostname[:idx]
+						shortName := cfg.Name
+						if idx := strings.IndexByte(cfg.Name, '.'); idx != -1 {
+							shortName = cfg.Name[:idx]
 						}
 						if err := wsClient.SendHeartbeat(shortName); err != nil {
 							logger.Errorf("Failed to send heartbeat: %v", err)

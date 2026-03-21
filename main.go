@@ -6,8 +6,6 @@ import (
 
 	controldaemon "github.com/lore/goober/cmd/control-daemon"
 	genkey "github.com/lore/goober/cmd/genkey"
-	ls "github.com/lore/goober/cmd/ls"
-	nodedaemon "github.com/lore/goober/cmd/node-daemon"
 	stop "github.com/lore/goober/cmd/stop"
 	"github.com/lore/goober/cmd/status"
 	"github.com/lore/goober/cmd/wake"
@@ -48,12 +46,10 @@ func main() {
 	// Add daemon subcommands
 	rootCmd.AddCommand(controldaemon.NewCommand())
 	rootCmd.AddCommand(hostdaemon.NewCommand())
-	rootCmd.AddCommand(nodedaemon.NewCommand())
 	rootCmd.AddCommand(genkey.NewCommand())
 
 	// Add client subcommands
 	rootCmd.AddCommand(wake.NewCommand(clientConfig))
-	rootCmd.AddCommand(ls.NewCommand(clientConfig))
 	rootCmd.AddCommand(stop.NewCommand(clientConfig))
 	rootCmd.AddCommand(status.NewCommand(clientConfig))
 	// Add utility subcommands
