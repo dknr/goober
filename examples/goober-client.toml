@@ -1,0 +1,7 @@
+# Client Example Configuration
+# Copy this file to ~/.config/goober/goober-client.toml
+# and adjust the values as needed.
+
+[server]
+# Address of the control daemon HTTP API
+address = "127.0.0.1:29530"

@@ -38,7 +38,6 @@ make deps     # Download dependencies
 
 - `wakeonlan` - Wake-on-LAN packet sender (required for WoL functionality)
   - Install: `apt install wakeonlan` or `brew install wakeonlan`
-- `go get github.com/gorilla/websocket` - WebSocket support
 
 ## Usage
 
@@ -47,6 +46,8 @@ make deps     # Download dependencies
 ```bash
 ./gbr control-daemon --config ~/.config/goober/goober-control.toml
 ```
+
+The daemon listens on the address specified in the config file for HTTP requests.
 
 The daemon listens on `127.0.0.1:29530` for HTTP requests.
 
@@ -124,28 +125,46 @@ address = "127.0.0.1:29530"
 
 Goober consists of three main components:
 
-1. **Control Daemon** (`gbr control-daemon`)
-   - Runs on desktop/server
-   - Listens on configured address for HTTP requests
-   - Manages configured hosts and their MAC addresses
-   - Receives heartbeats from host daemons via WebSocket
-   - Tracks last_seen timestamps for each host
-   - Provides `/api/hosts` endpoint with status information
+### 1. Control Daemon (`gbr control-daemon`)
+- Runs on desktop/server (typically always-on machine)
+- Provides HTTP REST API on configured address/port
+- Manages configured hosts and their MAC addresses
+- Receives heartbeats from host daemons via WebSocket
+- Tracks last_seen timestamps for each host to determine online status
+- Provides `/api/hosts` endpoint with status information
+- Implements Wake-on-LAN functionality via `/api/wake` endpoint
+- Uses WebSocket server for real-time host communication
 
-2. **Host Daemon** (`gbr host-daemon`)
-   - Runs on FreeBSD hosts
-   - Connects to control daemon via WebSocket
-   - Sends periodic heartbeats with hostname
-   - Handles reconnection on connection loss
-   - Supports future: suspend detection, VM control
+### 2. Host Daemon (`gbr host-daemon`)
+- Runs on FreeBSD hosts that need to be managed
+- Connects to control daemon via WebSocket (`ws://address:port/ws`)
+- Sends periodic heartbeats with hostname to indicate availability
+- Handles automatic reconnection with exponential backoff
+- Supports future features: suspend detection, VM control
+- Shortens hostname (removes domain part) for cleaner reporting
 
-3. **Client** (`gbr` commands)
-   - `wake <hostname>` - Send WoL, wait for connection
-   - `status` - Check host status with thresholds
-   - `control-daemon` - Start control daemon
-   - `host-daemon` - Start host daemon
-   - `genkey` - Generate ed25519 keypairs (future)
-   - `stop <hostname>` - Power off/suspend host (future)
+### 3. Client (`gbr` commands)
+User-facing command-line interface that communicates with the control daemon via HTTP:
+- `wake <hostname>` - Send Wake-on-LAN packet, then wait for host to come online
+- `status` - Check current status of all configured hosts with thresholds
+- `stop <hostname>` - Power off/suspend host (future implementation)
+- `control-daemon` - Start the control daemon
+- `host-daemon` - Start the host daemon
+- `genkey` - Generate ed25519 key pairs (future authentication)
+- `version` - Show build timestamp
+
+### WebSocket Communication
+
+The host daemon maintains a persistent WebSocket connection to the control daemon for real-time communication:
+
+- **Connection**: Host daemon connects to `ws://<control-address>:<control-port>/ws`
+- **Heartbeats**: Sent at configured interval (default: 60 seconds) with hostname
+- **Reconnection**: Automatic reconnection with exponential backoff (max 2 minutes)
+- **Message Format**: JSON payloads with `type`, `hostname`, and `timestamp` fields
+- **Current Message Types**:
+  - `heartbeat`: Sent from host to control daemon
+  - `heartbeat:ack`: Sent from control to host (acknowledgment)
+- **Future Message Types**: Planned for VM control, suspend detection, etc.
 
 ### Status Thresholds
 
@@ -161,11 +180,39 @@ Host status is determined by last_seen timestamp:
 - **Power Control**: `gbr stop` command for power-off/suspend
 - **VM Lifecycle**: Start/stop VMs via `vm:bhyve` commands
 - **Web UI**: HTTP API with real-time WebSocket updates
+
+## Troubleshooting
+
+### Common Issues
+
+**Control daemon fails to start**
+- Check if another process is already using the configured port
+- Verify the TOML configuration file is valid and accessible
+- Ensure you have permission to bind to the specified address/port
+
+**Host daemon cannot connect to control daemon**
+- Verify the control daemon is running and accessible
+- Check network connectivity between host and control daemon
+- Confirm WebSocket endpoint address and path are correct in host config
+- Ensure no firewall is blocking the WebSocket connection
+
+**Wake-on-LAN not working**
+- Install `wakeonlan` command: `apt install wakeonlan` (Linux) or `brew install wakeonlan` (macOS)
+- Verify the MAC address in the control daemon config is correct
+- Ensure the target host is configured to accept WoL packets (often in BIOS)
+- Check that the network allows UDP broadcast to port 9
+
+**Host shows as offline despite being powered on**
+- Verify host daemon is running on the target host
+- Check WebSocket connection status in host daemon logs
+- Confirm heartbeat interval is configured correctly
+- Ensure the hostname in host daemon matches what's expected
+
+### Logs
+All components log to stdout/stderr. For persistent logging, redirect output:
+```bash
+./gbr control-daemon --config ~/.config/goober/goober-control.toml >> control.log 2>&1 &
 ```
 
-### Client Config (`~/.config/goober/goober-client.toml`)
-
-```toml
-[server]
-address = "127.0.0.1:29530"
-```
+### Debugging
+Enable more verbose logging by modifying the logger initialization in the code (currently hardcoded to "info" level).

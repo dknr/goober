@@ -1,0 +1,16 @@
+# Host Daemon Example Configuration
+# Copy this file to ~/.config/goober/goober-host.toml or /etc/goober/goober-host.toml
+# and adjust the values as needed.
+
+[server]
+# Address for the host daemon to bind to (not used for outgoing connections)
+listen = "127.0.0.1:29532"
+
+[control]
+# Address of the control daemon WebSocket endpoint
+address = "127.0.0.1:29530"
+path = "/ws"
+
+[heartbeat]
+# Interval in seconds between heartbeats
+interval = 60

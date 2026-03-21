@@ -19,8 +19,6 @@ go.work.sum
 # Config files with sensitive data
 *.key
 *.pub
-*.toml
-!example*.toml
 
 # Database
 *.db

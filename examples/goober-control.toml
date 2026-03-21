@@ -1,0 +1,14 @@
+# Control Daemon Example Configuration
+# Copy this file to ~/.config/goober/goober-control.toml or /etc/goober/goober-control.toml
+# and adjust the values as needed.
+
+[server]
+# Address for the HTTP server to listen on
+listen = "127.0.0.1:29530"
+
+# Configure hosts by their MAC addresses
+[host.my-freebsd-box]
+mac = "00:11:22:33:44:55"
+
+[host.another-host]
+mac = "aa:bb:cc:dd:ee:ff"
